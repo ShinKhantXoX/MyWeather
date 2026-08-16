@@ -16,6 +16,44 @@ export interface WeatherData {
   coord: { lat: number; lon: number };
 }
 
+export interface ForecastItem {
+  dt: number;
+  main: {
+    temp: number;
+    feels_like: number;
+    temp_min: number;
+    temp_max: number;
+    humidity: number;
+  };
+  weather: Array<{
+    id: number;
+    main: string;
+    description: string;
+    icon: string;
+  }>;
+  wind: {
+    speed: number;
+    deg: number;
+  };
+  pop: number;
+  dt_txt: string;
+}
+
+export interface ForecastData {
+  cod: string;
+  message: number;
+  cnt: number;
+  list: ForecastItem[];
+  city: {
+    id: number;
+    name: string;
+    country: string;
+    timezone: number;
+    sunrise: number;
+    sunset: number;
+  };
+}
+
 export function getWeatherTitle(weatherData: WeatherData | null): string {
   if (!weatherData) return "Your Weather";
   
@@ -27,13 +65,54 @@ export function getWeatherTitle(weatherData: WeatherData | null): string {
 }
 
 export function getWeatherEmoji(weatherId: number): string {
-  if (weatherId >= 200 && weatherId < 300) return "⛈️"; // Thunderstorm
-  if (weatherId >= 300 && weatherId < 400) return "🌦️"; // Drizzle
-  if (weatherId >= 500 && weatherId < 600) return "🌧️"; // Rain
-  if (weatherId >= 600 && weatherId < 700) return "❄️"; // Snow
-  if (weatherId >= 700 && weatherId < 800) return "🌫️"; // Atmosphere
-  if (weatherId === 800) return "☀️"; // Clear
-  return "☁️"; // Clouds
+  // Thunderstorm
+  if (weatherId >= 200 && weatherId < 300) {
+    return "⛈️";
+  }
+
+  // Drizzle
+  if (weatherId >= 300 && weatherId < 400) {
+    return "🌦️";
+  }
+
+  // Rain
+  if (weatherId >= 500 && weatherId < 600) {
+    return "🌧️";
+  }
+
+  // Snow
+  if (weatherId >= 600 && weatherId < 700) {
+    return "❄️";
+  }
+
+  // Atmosphere: mist, smoke, haze, fog...
+  if (weatherId >= 700 && weatherId < 800) {
+    return "🌫️";
+  }
+
+  // Clear sky
+  if (weatherId === 800) {
+    return "☀️";
+  }
+
+  // Clouds
+  if (weatherId === 801) {
+    return "🌤️"; // Few clouds
+  }
+
+  if (weatherId === 802) {
+    return "⛅"; // Scattered clouds
+  }
+
+  if (weatherId === 803) {
+    return "🌥️"; // Broken clouds
+  }
+
+  if (weatherId === 804) {
+    return "☁️"; // Overcast clouds
+  }
+
+  return "☁️";
 }
 
 // Update favicon with emoji
