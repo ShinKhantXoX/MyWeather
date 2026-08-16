@@ -1,4 +1,7 @@
-import { WeatherData } from '../helpers/getWeather';
+import type {
+  WeatherData,
+  ForecastData,
+} from "../helpers/getWeather";
 
 // Cache configuration
 const CACHE_KEY = 'weather_cache';
@@ -130,6 +133,51 @@ class WeatherService {
     this.saveCache(data, undefined, lat, lon);
     return data;
   }
+
+  async fetchForecastByCoords(
+    lat: number,
+    lon: number
+    ): Promise<ForecastData> {
+    if (!this.apiKey) {
+        throw new Error("API key not set");
+    }
+
+    const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${this.apiKey}&units=metric`
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+        error.message || "Failed to fetch forecast"
+        );
+    }
+
+    return response.json();
+    }
+  
+    async fetchForecastByCity(
+    city: string
+    ): Promise<ForecastData> {
+    if (!this.apiKey) {
+        throw new Error("API key not set");
+    }
+
+    const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(
+        city
+        )}&appid=${this.apiKey}&units=metric`
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+        error.message || "Failed to fetch forecast"
+        );
+    }
+
+    return response.json();
+}
 
   clearCache() {
     this.cache = null;
