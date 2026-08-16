@@ -12,9 +12,14 @@ import {
   RefreshCw,
   Loader2,
   X,
+  Share2,
 } from "lucide-react";
-import { getWeatherEmoji, updateFavicon, WeatherData } from "../helpers/getWeather";
+import { ForecastData, ForecastItem, getWeatherEmoji, updateFavicon, WeatherData } from "../helpers/getWeather";
 import { weatherService } from "../helpers/weatherService";
+import Forecast from "./components/Forecast";
+import { shareWeatherImage } from "../helpers/createWeatherImage";
+import WeatherShareCard from "./components/WeatherShareCard";
+import ShareWeatherModal from "./components/ShareWeatherModal";
 
 function getWeatherCategory(id: number): string {
   if (id >= 200 && id < 300) return "thunderstorm";
@@ -26,7 +31,7 @@ function getWeatherCategory(id: number): string {
   return "clouds";
 }
 
-const WEATHER_IMAGES: Record<string, string> = {
+export const WEATHER_IMAGES: Record<string, string> = {
   thunderstorm: "/thunderstorm.jpg",
   drizzle: "/drizzle.jpg",
   rain: "/rain.jpg",
@@ -139,6 +144,22 @@ function GlassBtn({
   );
 }
 
+function getDailyForecast(forecast: ForecastData) {
+  const days: Record<string, ForecastItem[]> = {};
+
+  forecast.list.forEach((item) => {
+    const date = item.dt_txt.split(" ")[0];
+
+    if (!days[date]) {
+      days[date] = [];
+    }
+
+    days[date].push(item);
+  });
+
+  return Object.entries(days).slice(0, 5);
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -168,6 +189,10 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [lastRefresh, setLastRefresh] = useState<number>(0);
+
+  const [forecast, setForecast] = useState<ForecastData | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [unit, setUnit] = useState<"C" | "F">("C");
 
   // Crossfade when target changes
   useEffect(() => {
@@ -202,21 +227,21 @@ export default function App() {
     setTargetBg(WEATHER_IMAGES[cat]);
   };
 
-  const fetchByCoords = useCallback(async (lat: number, lon: number, key: string) => {
-    if (!key) { setShowApiModal(true); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      // Use the service with caching
-      const data = await weatherService.fetchWeatherByCoords(lat, lon);
-      applyWeatherData(data);
-      currentLocationRef.current = { lat, lon };
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // const fetchByCoords = useCallback(async (lat: number, lon: number, key: string) => {
+  //   if (!key) { setShowApiModal(true); return; }
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     // Use the service with caching
+  //     const data = await weatherService.fetchWeatherByCoords(lat, lon);
+  //     applyWeatherData(data);
+  //     currentLocationRef.current = { lat, lon };
+  //   } catch (e: any) {
+  //     setError(e.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, []);
 
   const fetchByCity = useCallback(async (city: string, key: string) => {
     if (!key) { setShowApiModal(true); return; }
@@ -236,6 +261,41 @@ export default function App() {
       setLoading(false);
     }
   }, []);
+
+  const fetchByCoords = useCallback(
+  async (lat: number, lon: number, key: string) => {
+    if (!key) {
+      setShowApiModal(true);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await weatherService.fetchWeatherByCoords(
+        lat,
+        lon
+      );
+
+      const forecastData =
+        await weatherService.fetchForecastByCoords(
+          lat,
+          lon
+        );
+
+      applyWeatherData(data);
+      setForecast(forecastData);
+
+      currentLocationRef.current = { lat, lon };
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  },
+  []
+);
 
   // Auto-locate on mount / key change
   useEffect(() => {
@@ -313,8 +373,6 @@ export default function App() {
 
   const displayTemp = (c: number) =>
     Math.round(isCelsius ? c : celsiusToFahrenheit(c));
-
-  const unit = isCelsius ? "°C" : "°F";
 
 // Modified refresh function with cooldown
 const handleRefresh = useCallback(() => {
@@ -480,8 +538,20 @@ const handleRefresh = useCallback(() => {
               />
             </GlassBtn>
 
+            <GlassBtn onClick={() => setShowShareModal(true)}>
+              <Share2 size={14} />
+            </GlassBtn>
+
           </div>
         </div>
+
+        {weather && showShareModal && (
+          <ShareWeatherModal
+            weather={weather}
+            unit={unit}
+            onClose={() => setShowShareModal(false)}
+          />
+        )}
 
         {/* for the dev mode */}
         {/* {weather && (
@@ -604,6 +674,10 @@ const handleRefresh = useCallback(() => {
             </motion.div>
           ) : null}
         </div>
+
+        {forecast && (
+          <Forecast forecast={forecast} />
+        )}
 
         {/* Bottom: stats glass card */}
         {weather && (
